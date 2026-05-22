@@ -1,6 +1,27 @@
 """
 controller.py
-EFE Controller — selezione della policy via G(π).
+EFE Controller — selezione della policy via EFE(π).
+
+Seleziona le azioni minimizzando la Expected Free Energy EFE(π).
+
+Decomposizione canonica:
+
+    EFE(π) = −PragmaticValue(π) − EpistemicValue(π)
+
+dove:
+    PragmaticValue(π) = −Hazard(π) − Cost(π)
+    Hazard            = min(1.5, proximity + 0.5·uncertainty)
+    proximity         = max(0,   1 − 2·|E_Q[s_t] − TRANSITION|)
+    EpistemicValue    = uncertainty  se π=epistemic_slow, altrimenti 0
+
+Nota: nel codice −PragmaticValue è calcolato direttamente come
+    neg_pv = Hazard + Cost
+in modo che EFE = neg_pv − EpistemicValue.
+
+Policy π ∈ {maintain, epistemic_slow, pragmatic_stop}.
+L'agente esegue  π* = argmin_π EFE(π).
+
+Ogni flag disabilita indipendentemente un termine della EFE (ablation study).
 """
 
 from constants import BASE_COSTS, TRANSITION
@@ -8,26 +29,6 @@ from belief_state import BeliefState
 
 
 class EFEController:
-    """Seleziona le azioni minimizzando la Expected Free Energy G(π).
-
-    Decomposizione canonica:
-
-        G(π) = Risk(π) − EpistemicValue(π)
-
-    dove:
-        Risk(π)           = Hazard(π) + OperationalCost(π)   [termine pragmatico]
-        EpistemicValue(π) ≈ H[Q(s_t)]  se π=epistemic_slow, altrimenti 0
-
-    Hazard codifica la vicinanza alla zona di pericolo (TRANSITION),
-    pesata dall'incertezza corrente della belief:
-        proximity = max(0,   1 − 2·|E_Q[s_t] − TRANSITION|)
-        Hazard    = min(1.5, proximity + 0.5·uncertainty)
-
-    Policy π ∈ {maintain, epistemic_slow, pragmatic_stop}.
-    L'agente esegue  π* = argmin_π G(π).
-
-    Ogni flag disabilita indipendentemente un termine della EFE (ablation study).
-    """
 
     def __init__(
         self,
@@ -43,7 +44,7 @@ class EFEController:
     def _compute_efe(self, policy: str, belief: BeliefState) -> dict:
         """Calcola il breakdown completo della EFE per una singola policy."""
 
-        # ── Hazard ────────────────────────────────────────────────────────────
+        # ── Hazard (prossimità alla zona di pericolo) ─────────────────────────
         if self.enable_hazard:
             proximity = max(0.0, 1.0 - 2.0 * abs(belief.estimate - TRANSITION))
             unc_term  = belief.uncertainty * 0.5
@@ -51,11 +52,11 @@ class EFEController:
         else:
             proximity = unc_term = hazard = 0.0
 
-        # ── Costo operativo ───────────────────────────────────────────────────
+        # ── Cost (costo operativo) ────────────────────────────────────────────
         cost = BASE_COSTS[policy] if self.enable_cost else 0.0
 
-        # ── Risk = Hazard + Cost  (termine pragmatico) ────────────────────────
-        risk = hazard + cost
+        # ── −PragmaticValue = Hazard + Cost  (termine pragmatico totale) ─────
+        neg_pv = hazard + cost
 
         # ── EpistemicValue  (guadagno informativo) ────────────────────────────
         # Rallentare permette di osservare lo scambio più attentamente,
@@ -67,7 +68,8 @@ class EFEController:
         )
 
         # ── Expected Free Energy ──────────────────────────────────────────────
-        G = risk - epistemic_value
+        # EFE(π) = −PragmaticValue(π) − EpistemicValue(π)
+        G = neg_pv - epistemic_value
 
         return {
             "policy": policy,
@@ -77,7 +79,7 @@ class EFEController:
                 "unc_term":  unc_term,
             },
             "cost":            cost,
-            "risk":            risk,
+            "neg_pv":          neg_pv,
             "epistemic_value": epistemic_value,
             "G":               G,
             "belief": {

@@ -9,7 +9,6 @@ Salva i PNG in outputs/graphs/<style>/.
 """
 
 import json
-import textwrap
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
@@ -42,7 +41,7 @@ _ABLATION1_COLORS = {
 
 _ABLATION1_FAILURES = {
     "baseline":       "N/A - sistema corretto",
-    "no_epistemic":   "EFE(slow) = Risk + 0.4 > EFE(maintain) = Risk + 0.1 sempre -> maintain vince sempre",
+    "no_epistemic":   "EFE(slow) = −PV + 0.4 > EFE(maintain) = −PV + 0.1 sempre -> maintain vince sempre",
     "no_threshold":   "Nessuna anomalia rilevata -> uncertainty rimane 0.1 -> epistemic=0 -> maintain vince sempre",
     "no_uncertainty": "epistemic_value = uncertainty * ... = 0 -> epistemic azzerato -> maintain vince sempre",
     "no_model":       "prediction_error = |sensor - 0| sempre ~ 0 in fase stabile -> nessuna anomalia rilevata durante attacco",
@@ -102,7 +101,7 @@ def extract_arrays(trace: dict) -> dict:
     efe_st   = np.array([e["G_stop"]          for e in log])
     hazard   = np.array([e["hazard"]          for e in log])
     cost_a   = np.array([e["cost"]            for e in log])
-    risk_a   = np.array([e["risk"]            for e in log])
+    neg_pv_a = np.array([e["neg_pv"]          for e in log])
     ep_a     = np.array([e["epistemic_value"] for e in log])
     pred_err = np.abs(sensor - real)
 
@@ -114,16 +113,16 @@ def extract_arrays(trace: dict) -> dict:
         t=t, real=real, sensor=sensor, belief=belief, unc=unc,
         anomaly=anomaly, velocity=velocity, policy=policy,
         efe_m=efe_m, efe_s=efe_s, efe_st=efe_st,
-        hazard=hazard, cost_a=cost_a, risk_a=risk_a, ep_a=ep_a,
+        hazard=hazard, cost_a=cost_a, neg_pv_a=neg_pv_a, ep_a=ep_a,
         pred_err=pred_err,
         # componenti per-azione (per i layer EFE)
-        hazard_m=comp("maintain",       "hazard"),
-        risk_m  =comp("maintain",       "risk"),
-        hazard_s=comp("epistemic_slow", "hazard"),
-        risk_s  =comp("epistemic_slow", "risk"),
-        ep_s    =comp("epistemic_slow", "epistemic_value"),
-        hazard_st=comp("pragmatic_stop","hazard"),
-        risk_st  =comp("pragmatic_stop","risk"),
+        hazard_m =comp("maintain",       "hazard"),
+        neg_pv_m =comp("maintain",       "neg_pv"),
+        hazard_s =comp("epistemic_slow", "hazard"),
+        neg_pv_s =comp("epistemic_slow", "neg_pv"),
+        ep_s     =comp("epistemic_slow", "epistemic_value"),
+        hazard_st=comp("pragmatic_stop", "hazard"),
+        neg_pv_st=comp("pragmatic_stop", "neg_pv"),
     )
 
 
@@ -185,20 +184,20 @@ def plot_pathway(variant: str, trace: dict, P: dict, outdir: Path):
 
     # Layers 4a/4b/4c — EFE per azione
     efe_data = [
-        ("maintain",       d["efe_m"],  d["risk_m"],  d["hazard_m"],  P["maintain"],
+        ("maintain",       d["efe_m"],  d["neg_pv_m"],  d["hazard_m"],  P["maintain"],
          "4a. EFE Maintain  (v=10)"),
-        ("epistemic_slow", d["efe_s"],  d["risk_s"],  d["hazard_s"],  P["epistemic_slow"],
+        ("epistemic_slow", d["efe_s"],  d["neg_pv_s"],  d["hazard_s"],  P["epistemic_slow"],
          "4b. EFE Slow      (v=4)"),
-        ("pragmatic_stop", d["efe_st"], d["risk_st"], d["hazard_st"], P["pragmatic_stop"],
+        ("pragmatic_stop", d["efe_st"], d["neg_pv_st"], d["hazard_st"], P["pragmatic_stop"],
          "4c. EFE Stop      (v=0)"),
     ]
-    for i, (a_name, efe_arr, risk_arr, haz_arr, color, title) in enumerate(efe_data):
+    for i, (a_name, efe_arr, neg_pv_arr, haz_arr, color, title) in enumerate(efe_data):
         ax = axes[3 + i]
         shade_attack(ax, P)
-        ax.plot(d["t"], risk_arr,     color=P["fail"],     lw=1.2, label="Risk")
-        ax.plot(d["t"], d["ep_a"],    color=P["epistemic"],lw=1.2, label="Epistemic Value")
+        ax.plot(d["t"], neg_pv_arr,   color=P["fail"],     lw=1.2, label="−PragmaticValue")
+        ax.plot(d["t"], d["ep_a"],    color=P["epistemic"],lw=1.2, label="Valore epistemico")
         ax.plot(d["t"], efe_arr,      color=color,         lw=1.6, ls="--",
-                label=f"EFE {a_name.split('_')[0]} (= R−E)")
+                label=f"EFE {a_name.split('_')[0]} (= −PV−E)")
         chosen = np.array([p == a_name for p in d["policy"]])
         if chosen.any():
             ax.scatter(d["t"][chosen], efe_arr[chosen], color=color, s=20,
@@ -245,8 +244,8 @@ def plot_pathway(variant: str, trace: dict, P: dict, outdir: Path):
 
     fig.suptitle(
         f"Percorso Decisionale — {variant}\n"
-        r"$\mathrm{EFE} = \mathrm{Risk} - \mathrm{Epistemic}$,  "
-        r"$\mathrm{Risk} = \mathrm{Hazard} + \mathrm{Cost}$",
+        r"$\mathrm{EFE}(\pi) = -\mathrm{PragmaticValue}(\pi) - \mathrm{EpistemicValue}(\pi)$,  "
+        r"$\mathrm{PragmaticValue}(\pi) = -\mathrm{Hazard}(\pi) - \mathrm{Cost}(\pi)$",
         fontsize=11, fontweight="bold",
     )
 
@@ -299,8 +298,8 @@ def plot_ablation2(traces: dict, P: dict, outdir: Path):
 
     fig.suptitle(
         "Ablation Study — Velocità del treno per ogni variante EFE\n"
-        r"$\mathrm{EFE} = \mathrm{Risk} - \mathrm{Epistemic}$,  "
-        r"$\mathrm{Risk} = \mathrm{Hazard} + \mathrm{Cost}$",
+        r"$\mathrm{EFE}(\pi) = -\mathrm{PragmaticValue}(\pi) - \mathrm{EpistemicValue}(\pi)$,  "
+        r"$\mathrm{PragmaticValue}(\pi) = -\mathrm{Hazard}(\pi) - \mathrm{Cost}(\pi)$",
         fontsize=12, fontweight="bold", y=0.98,
     )
     fig.text(
@@ -330,41 +329,60 @@ def load_ablation1(key: str) -> dict | None:
 
 
 def plot_ablation1(data_map: dict, P: dict, outdir: Path):
-    n_rows = len(ABLATION1_KEYS)
-    ATTACK_COLOR = "#ffcccc"
+    CASES = [
+        ("baseline",       _ABLATION1_COLORS["baseline"],       "Baseline"),
+        ("no_uncertainty", _ABLATION1_COLORS["no_uncertainty"], "Senza Uncertainty"),
+    ]
 
-    fig = plt.figure(figsize=(20, 4 * n_rows))
-    fig.suptitle(
-        "Ablation 1 — Effetto della rimozione di ciascun componente",
-        fontsize=15, fontweight="bold", y=0.995,
-    )
-    gs = GridSpec(n_rows, 3, figure=fig,
-                  hspace=0.7, wspace=0.35,
-                  top=0.96, bottom=0.04, left=0.08, right=0.97)
+    # 5 righe × 2 colonne: righe 0-1 = Baseline, riga 2 = gap, righe 3-4 = Senza Uncertainty
+    fig = plt.figure(figsize=(13, 14))
+    gs  = GridSpec(5, 2, figure=fig,
+                   height_ratios=[1, 1, 0.15, 1, 1],
+                   hspace=0.55, wspace=0.32,
+                   top=0.93, bottom=0.05, left=0.08, right=0.97)
 
-    for row_i, key in enumerate(ABLATION1_KEYS):
-        data = data_map.get(key)
-        color   = _ABLATION1_COLORS[key]
-        failure = _ABLATION1_FAILURES[key]
-        is_ok   = (key == "baseline")
+    fig.suptitle("Ablation 1 — Baseline vs Senza Uncertainty",
+                 fontsize=14, fontweight="bold")
+
+    # Pre-crea tutti gli 8 assi
+    axes = {
+        "baseline": [
+            fig.add_subplot(gs[0, 0]), fig.add_subplot(gs[0, 1]),
+            fig.add_subplot(gs[1, 0]), fig.add_subplot(gs[1, 1]),
+        ],
+        "no_uncertainty": [
+            fig.add_subplot(gs[3, 0]), fig.add_subplot(gs[3, 1]),
+            fig.add_subplot(gs[4, 0]), fig.add_subplot(gs[4, 1]),
+        ],
+    }
+
+    # Linea separatrice tra i due blocchi
+    fig.add_artist(plt.Line2D(
+        [0.04, 0.96], [0.505, 0.505],
+        transform=fig.transFigure, color="#aaaaaa", lw=1.2, ls="--",
+    ))
+
+    for key, color, _ in CASES:
+        axs      = axes[key]
+        data     = data_map.get(key)
+        box_color = "#fef3e2"
 
         if data is None:
-            for col in range(3):
-                fig.add_subplot(gs[row_i, col]).text(
-                    0.5, 0.5, "Dati non disponibili",
-                    ha="center", va="center", transform=plt.gca().transAxes)
+            for ax in axs:
+                ax.text(0.5, 0.5, "Dati non disponibili",
+                        ha="center", va="center", transform=ax.transAxes)
+                clean_axis(ax)
             continue
 
-        log     = data["simulation_log"]
-        btr     = data.get("belief_trace", [])
-        label   = data["label"]
-        metrics = data["metrics"]
+        log  = data["simulation_log"]
+        btr  = data.get("belief_trace", [])
+        mets = data["metrics"]
 
-        t        = np.array([e["t"]               for e in log])
-        vel      = np.array([e["velocity"]        for e in log])
-        policy   = np.array([e["policy"]          for e in log])
-        unc      = np.array([e["uncertainty"]     for e in log])
+        t      = np.array([e["t"]               for e in log])
+        vel    = np.array([e["velocity"]        for e in log])
+        unc    = np.array([e["uncertainty"]     for e in log])
         ep_a     = np.array([e["epistemic_value"] for e in log])
+        neg_pv_a = np.array([e["neg_pv"]          for e in log])
         pred_err = (
             np.array([e["prediction_error"] for e in btr])
             if btr and "prediction_error" in btr[0]
@@ -374,81 +392,58 @@ def plot_ablation1(data_map: dict, P: dict, outdir: Path):
             )
         )
 
-        tp   = metrics["tp"]
-        fp   = metrics["fp"]
-        prec = metrics["precision"]
-        status = "OK" if is_ok else "FAIL"
-        title_color = "green" if is_ok else "red"
-        box_color   = "#d5f5e3" if is_ok else "#fadbd8"
+        tp   = mets["tp"]
+        fp   = mets["fp"]
+        prec = mets["precision"]
 
-        # ── Col 0: Velocità ──────────────────────────────────────────────────
-        ax0 = fig.add_subplot(gs[row_i, 0])
-        ax0.axvspan(ATTACK_START, ATTACK_END, color=ATTACK_COLOR, alpha=0.5, zorder=0)
-        ax0.plot(t, vel, color=color, lw=2.0)
-        slow_mask = policy == "epistemic_slow"
-        if slow_mask.any():
-            ax0.scatter(t[slow_mask], vel[slow_mask],
-                        color="blue", s=20, zorder=5)
-        ax0.set_title(f"[{status}] {label}", fontsize=10, fontweight="bold",
-                      color=title_color)
-        ax0.set_ylabel("Velocità", fontsize=9)
-        ax0.set_xlim(0, 50)
-        ax0.set_ylim(-0.5, 12)
-        ax0.grid(True, alpha=0.3)
-        ax0.spines["top"].set_visible(False)
-        ax0.spines["right"].set_visible(False)
-        ax0.text(0.02, 0.05,
-                 f"TP={tp}  FP={fp}  Prec={prec}",
-                 transform=ax0.transAxes, fontsize=8, va="bottom",
-                 bbox=dict(boxstyle="round", facecolor=box_color, alpha=0.9))
-        if row_i == n_rows - 1:
-            ax0.set_xlabel("Tempo (timestep)", fontsize=9)
+        status      = "OK"  if key == "baseline" else "FAIL"
+        title_color = color if key == "baseline" else "#e74c3c"
+        full_label  = data["label"]
 
-        # ── Col 1: Prediction Error & Uncertainty ────────────────────────────
-        ax1 = fig.add_subplot(gs[row_i, 1])
-        ax1.axvspan(ATTACK_START, ATTACK_END, color=ATTACK_COLOR, alpha=0.5, zorder=0)
-        ax1.plot(t, pred_err, color=color,       lw=1.8, label="Prediction error")
-        ax1.plot(t, unc,      color="steelblue", lw=1.5, ls="--", label="Uncertainty")
-        ax1.axhline(ANOMALY_THRESHOLD, color="red", lw=1.2, ls=":",
-                    label=f"Soglia ({ANOMALY_THRESHOLD})")
-        ax1.set_title("Prediction Error & Uncertainty", fontsize=10)
-        ax1.set_ylabel("Valore", fontsize=9)
-        ax1.set_xlim(0, 50)
-        ax1.set_ylim(-0.05, 1.1)
-        ax1.grid(True, alpha=0.3)
-        ax1.legend(fontsize=8, loc="upper left")
-        ax1.spines["top"].set_visible(False)
-        ax1.spines["right"].set_visible(False)
-        if row_i == n_rows - 1:
-            ax1.set_xlabel("Tempo (timestep)", fontsize=9)
+        _leg_kw = dict(fontsize=7, framealpha=0.9,
+                       facecolor="#fef3e2", edgecolor="#f39c12")
 
-        # ── Col 2: Epistemic Value ────────────────────────────────────────────
-        ax2 = fig.add_subplot(gs[row_i, 2])
-        ax2.axvspan(ATTACK_START, ATTACK_END, color=ATTACK_COLOR, alpha=0.5, zorder=0)
-        ax2.plot(t, ep_a, color="purple", lw=2.0, label="Epistemic value")
-        ax2.set_title("Epistemic Value", fontsize=10)
-        ax2.set_ylabel("Valore", fontsize=9)
-        ax2.set_xlim(0, 50)
-        ax2.set_ylim(-0.05, 1.2)
-        ax2.grid(True, alpha=0.3)
-        ax2.spines["top"].set_visible(False)
-        ax2.spines["right"].set_visible(False)
-        wrapped = textwrap.fill(failure, width=30)
-        ax2.text(0.03, 0.95, wrapped,
-                 transform=ax2.transAxes, fontsize=8, va="top", ha="left",
-                 bbox=dict(boxstyle="round,pad=0.3", facecolor=box_color, alpha=0.9),
-                 linespacing=1.3)
-        if row_i == n_rows - 1:
-            ax2.set_xlabel("Tempo (timestep)", fontsize=9)
+        # [0] Azione — titolo colorato (verde/rosso)
+        ax = axs[0]
+        ax.plot(t, vel, color=color, lw=2.0)
+        ax.set_ylim(-0.5, 12)
+        ax.set_ylabel("Velocità (km/h)", fontsize=9)
+        ax.set_title(f"[{status}] {full_label}", fontsize=10,
+                     fontweight="bold", color=title_color)
+        ax.text(0.02, 0.05, f"TP={tp}  FP={fp}  Prec={prec:.2f}",
+                transform=ax.transAxes, fontsize=8, va="bottom",
+                bbox=dict(boxstyle="round", facecolor=box_color, alpha=0.9))
 
-    # Separatori tra le righe
-    for i in range(1, n_rows):
-        y_pos = 1.0 - (i / n_rows)
-        fig.add_artist(plt.Line2D(
-            [0.02, 0.98], [y_pos, y_pos],
-            transform=fig.transFigure,
-            color="black", linewidth=1.5, alpha=0.4,
-        ))
+        # [1] Prediction Error & Uncertainty — titolo nero
+        ax = axs[1]
+        ax.plot(t, pred_err, color=color,       lw=1.6, label="Prediction error")
+        ax.plot(t, unc,      color="steelblue", lw=1.5, ls="--", label="Uncertainty")
+        ax.axhline(ANOMALY_THRESHOLD, color="red", lw=1.0, ls=":",
+                   label=f"Soglia ({ANOMALY_THRESHOLD})")
+        ax.set_ylim(-0.05, 1.15)
+        ax.set_ylabel("Valore", fontsize=9)
+        ax.set_title("Prediction Error & Uncertainty", fontsize=10, fontweight="bold")
+        ax.legend(loc="upper left", **_leg_kw)
+
+        # [2] Epistemic Value — titolo nero
+        ax = axs[2]
+        ax.plot(t, ep_a, color="purple", lw=1.8)
+        ax.set_ylim(-0.05, 1.2)
+        ax.set_ylabel("Valore", fontsize=9)
+        ax.set_xlabel("Tempo (timestep)", fontsize=9)
+        ax.set_title("Valore epistemico", fontsize=10, fontweight="bold")
+
+        # [3] Pragmatic Value — titolo nero
+        ax = axs[3]
+        ax.plot(t, neg_pv_a, color="#e67e22", lw=1.8)
+        ax.set_ylabel("Valore", fontsize=9)
+        ax.set_xlabel("Tempo (timestep)", fontsize=9)
+        ax.set_title("Pragmatic Value", fontsize=10, fontweight="bold")
+
+        for ax in axs:
+            shade_attack(ax, P, alpha=0.2)
+            ax.set_xlim(0, 50)
+            clean_axis(ax)
 
     out = outdir / "ablation1.png"
     fig.savefig(out, dpi=150, bbox_inches="tight")

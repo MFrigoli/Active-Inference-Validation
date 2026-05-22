@@ -1,6 +1,22 @@
 """
 belief_state.py
 Belief posteriore Q(s_t) — aggiornata via predictive coding.
+
+Posterior Q(s_t) sullo stato dello scambio, aggiornata via predictive coding.
+
+Regola di aggiornamento (inferenza Bayesiana semplificata):
+    prediction_error = |osservazione − prior P(s_t)|
+
+    prediction_error > ANOMALY_THRESHOLD  >>>  TRUST_MODEL
+        L'osservazione è troppo lontana dal prior → probabile FDIA.
+        Il posterior torna alla media del prior; incertezza al massimo.
+
+    prediction_error <= ANOMALY_THRESHOLD  >>>  TRUST_SENSOR
+        L'osservazione è coerente col prior → assorbi nel belief.
+        L'incertezza è alta vicino a TRANSITION, bassa vicino a STABLE_A/B.
+
+L'incertezza è un proxy scalare per l'entropia posteriore H[Q(s_t)].
+White-box: ogni quantità intermedia viene salvata in self.trace.
 """
 
 from constants import ANOMALY_THRESHOLD, STABLE_A, TRANSITION
@@ -8,22 +24,6 @@ from generative_model import GenerativeModel
 
 
 class BeliefState:
-    """Posterior Q(s_t) sullo stato dello scambio, aggiornata via predictive coding.
-
-    Regola di aggiornamento (inferenza Bayesiana semplificata):
-        prediction_error = |osservazione − prior P(s_t)|
-
-        prediction_error > ANOMALY_THRESHOLD  >>>  TRUST_MODEL
-            L'osservazione è troppo lontana dal prior >>> probabile FDIA.
-            Il posterior torna alla media del prior; incertezza al massimo.
-
-        prediction_error <= ANOMALY_THRESHOLD  >>>  TRUST_SENSOR
-            L'osservazione è coerente col prior >>> assorbi nel belief.
-            L'incertezza è alta vicino a TRANSITION, bassa vicino a STABLE_A/B.
-
-    L'incertezza è un proxy scalare per l'entropia posteriore H[Q(s_t)].
-    White-box: ogni quantità intermedia viene salvata in self.trace.
-    """
 
     def __init__(self, model: GenerativeModel = None):
         self.model       = model or GenerativeModel()

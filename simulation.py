@@ -82,7 +82,7 @@ def simulate(
             "G_stop":          efe["pragmatic_stop"]["G"],
             "hazard":          efe[policy]["hazard"],
             "cost":            efe[policy]["cost"],
-            "risk":            efe[policy]["risk"],
+            "neg_pv":          efe[policy]["neg_pv"],
             "epistemic_value": efe[policy]["epistemic_value"],
         }
         log.append(entry)

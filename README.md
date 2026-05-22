@@ -1,442 +1,314 @@
 # Railway Active Inference: Rilevamento Anomalie FDIA
 
-## 📋 Panoramica
-
-Questo progetto implementa un sistema di **Active Inference** basato su principi di Bayesian decision-making per il rilevamento e la mitigazione di attacchi **False Data Injection Attack (FDIA)** in sistemi ferroviari. 
-
-Il sistema dimostra come un agente intelligente può:
-- **Rilevare anomalie** nei dati sensoriali
-- **Minimizzare il Free Energy** (incertezza) attraverso azioni epistemiche
-- **Rallentare e fermarsi** in modo intelligente quando rileva minacce
-- **Apprendere dalle fallaci** e identificare processi decisionali sbagliati
+Implementazione Python di un agente **Active Inference** per il rilevamento e la
+mitigazione di attacchi **False Data Injection Attack (FDIA)** su uno scambio
+ferroviario, basata sul Free Energy Principle (FEP).
 
 ---
 
-## 🎯 Architettura del Sistema
+## Panoramica
+
+Il sistema dimostra come un agente intelligente può:
+- **Rilevare anomalie** nei dati sensoriali tramite predictive coding
+- **Minimizzare la Free Energy** (EFE) attraverso azioni epistemiche e pragmatiche
+- **Rallentare e fermarsi** in modo razionale quando rileva minacce
+- **Distinguere** tra output superficialmente corretto e processo decisionale genuino
+
+---
+
+## Architettura del sistema
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │              RAILWAY ACTIVE INFERENCE SYSTEM                │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
-│  Environment:  Switch (state changes)                       │
-│  ↓                                                          │
-│  Sensor:       SwitchSensor (subject to FDIA attacks)       │
-│  ↓                                                          │
-│  Belief:       BeliefEstimator (Bayesian state update)      │
-│  ↓                                                          │
-│  Decision:     EFE Minimization (epistemic + pragmatic)     │
-│  ↓                                                          │
-│  Action:       Train controller (maintain/slow/stop)        │
+│  Environment:  Switch  (transizione stato scambio)          │
+│       ↓                                                     │
+│  Sensor:       Sensor  (lettura con possibile FDIA)         │
+│       ↓                                                     │
+│  Belief:       BeliefState  (predictive coding bayesiano)   │
+│       ↓                                                     │
+│  Decision:     EFEController  (minimizzazione EFE)          │
+│       ↓                                                     │
+│  Action:       Train  (maintain / epistemic_slow / stop)    │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Componenti principali
-
-1. **BeliefEstimator**: Aggiorna una stima bayesiana dello stato
-2. **Controller (Active Inference)**: Minimizza la Free Energy tramite la formula:
-   ```
-   EFE(π) = Hazard(π) + Cost(π) - EpistemicValue(π)
-   ```
-3. **Ambiente simulato**: Switch ferroviario che cambia stato nel tempo
-
 ---
 
-## 📁 Struttura dei File
-
-### File di simulazione
-
-| File | Scopo |
-|------|-------|
-| `railway_active_inference_enhanced.py` | **Core**: 8 varianti ablation study della EFE |
-| `fallacious_systems.py` | Sistemi "fallaci" che ottengono risultati corretti con processi sbagliati |
-| `visualize_analysis.py` | Genera grafici 2D delle simulazioni |
-| `visualize_fallacious_pathways.py` | Visualizza percorsi decisionali dei sistemi fallaci |
-| `analyze_fallacious.py` | Analisi comparativa dei sistemi fallaci |
-| `validate_necessity.py` | Valida che ogni componente della EFE sia necessario |
-| `validate_thesis.py` | Verifiche di correttezza del sistema |
-| `run_thesis.py` | Master workflow per eseguire tutto |
-
-### Output generati
+## Struttura dei file
 
 ```
-outputs/
-├── data/                      # JSON con risultati simulazioni
-│   ├── trace_full.json
-│   ├── trace_no_hazard.json
-│   ├── trace_no_epistemic.json
-│   ├── ablation_comparison.json
-│   └── ...
-├── graphs/                    # Grafici visualizzazioni
-│   ├── full_behavior.png
-│   ├── ablation_comparison.png
-│   └── ...
-├── analysis/                  # Testi di analisi
-│   └── validation_report.txt
-└── fallacious/                # Risultati sistemi fallaci
-    ├── fallacious_normal_baseline.json
-    ├── fallacious_paranoid_threshold_troppo_basso.json
-    └── ...
+.
+├── constants.py             Costanti fisiche e parametri globali
+├── environment.py           Switch (scambio) e Sensor (sensore + FDIA)
+├── generative_model.py      Modello generativo interno P(s_t)
+├── belief_state.py          Belief posteriore Q(s_t) via predictive coding
+├── controller.py            EFE Controller — selezione policy π*
+├── train.py                 Effettore: policy → velocità treno
+├── simulation.py            Loop di simulazione e calcolo metriche
+│
+├── ablation2.py             Ablation 2: 8 combinazioni termini EFE
+├── ablation1.py             Ablation 1: 5 varianti componenti architetturali
+├── stress_test.py           Stress test: sistemi fallaci
+│
+├── visualize_ablation.py    Grafici ablation 1 e 2
+├── visualize_stress_test.py Grafici stress test
+├── plot_style.py            Stile matplotlib condiviso
+├── wandb_logger.py          Integrazione opzionale Weights & Biases
+│
+├── run_thesis.py            Master workflow — esegue tutto in sequenza
+│
+└── fallacious/              Sistemi fallaci (varianti di BeliefState e Controller)
+    ├── paranoid.py          Soglia anomalia troppo bassa → falsi allarmi continui
+    ├── rigged_cost.py       Costo maintain gonfiato → rallenta per ragione sbagliata
+    ├── over_cautious.py     Incertezza sempre alta → rallenta anche senza attacco
+    ├── lucky.py             Timing hardcoded → funziona solo su finestra nota
+    ├── no_threshold.py      Soglia disabilitata → anomalia mai rilevata
+    ├── no_uncertainty.py    Incertezza fissa a 0.1 → valore epistemico nullo
+    └── no_model.py          Modello prevede sempre 0 → FN durante attacco
 ```
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisiti
 
 ```bash
-pip install numpy matplotlib scipy
+pip install numpy matplotlib
+pip install wandb   # opzionale — logging esperimenti su Weights & Biases
 ```
 
-### Esecuzione completa (tutti gli step)
+### Workflow completo
 
 ```bash
 python run_thesis.py
 ```
 
-Questo esegue automaticamente in sequenza:
-1. Simulazione con 8 varianti ablation
-2. Visualizzazioni 2D
-3. Validazione della tesi
-4. Analisi sistemi fallaci
-5. Visualizzazione percorsi fallaci
-6. Validazione della necessità dei componenti
+Esegue in sequenza: ablation2 → ablation1 → stress_test →
+visualize_ablation → visualize_stress_test.
+I file JSON e PNG vengono organizzati automaticamente in `outputs/`.
 
-### Esecuzione singoli moduli
+### Esperimenti singoli
 
 ```bash
-# Solo simulazioni ablation
-python railway_active_inference_enhanced.py
-
-# Solo validazioni
-python validate_thesis.py
-
-# Solo sistemi fallaci
-python fallacious_systems.py
-python analyze_fallacious.py
+python ablation2.py           # 8 combinazioni termini EFE
+python ablation1.py           # 5 varianti componenti architetturali
+python stress_test.py         # sistemi fallaci
+python visualize_ablation.py  # grafici (richiede JSON ablation1/2)
 ```
 
 ---
 
-## 🧠 Modello Teorico
+## Modello teorico
 
-### Free Energy Principle
-
-Il sistema minimizza la **Free Energy** (EFE) attraverso tre componenti:
-
-#### 1. **Hazard** (Rischio pragmatico)
-```
-Hazard(π) = Distance(estimate, transition_point) + Uncertainty(belief)
-```
-- Quantifica il rischio di essere nello stato critico
-- Aumenta quando l'agente si avvicina al punto di transizione
-- Aumenta con l'incertezza epistemica
-
-#### 2. **Cost** (Costo operativo)
-```
-Cost(maintain) = 0.1      # Azione più economica
-Cost(slow)     = 0.4      # Azione intermedia
-Cost(stop)     = 0.8      # Azione più costosa
-```
-- Rappresenta il costo energetico/operativo
-- Bilancia tra efficienza e sicurezza
-
-#### 3. **Epistemic Value** (Valore informativo)
-```
-EpistemicValue(slow) = Uncertainty(belief)
-EpistemicValue(other) = 0
-```
-- Solo l'azione "epistemic_slow" fornisce informazioni
-- Quantifica quanto l'azione riduce l'incertezza
-
-### Formula EFE canonica
+### Formula canonica EFE
 
 ```
-EFE(π) =      Risk(π)        -   EpistemicValue(π)
-         └──────┬─────────┘     └────────┬────────┘
-            Pragmatic term        Epistemic term
+EFE(π) = −PragmaticValue(π) − EpistemicValue(π)
 
-Risk(π) = Hazard(π) + Cost(π)
+PragmaticValue(π) = −Hazard(π) − Cost(π)
+```
+
+Nel codice `neg_pv = Hazard + Cost` (= −PragmaticValue), quindi:
+
+```
+G(π) = neg_pv(π) − epistemic_value(π)
+π*   = argmin_π  G(π)
+```
+
+### Componenti della EFE
+
+#### 1. Hazard (rischio pragmatico)
+```
+proximity = max(0,   1 − 2·|E_Q[s_t] − TRANSITION|)
+unc_term  = uncertainty · 0.5
+Hazard    = min(1.5, proximity + unc_term)
+```
+Aumenta quando la stima si avvicina al punto di transizione critico
+e con l'incertezza sul belief state.
+
+#### 2. Cost (costo operativo)
+```
+Cost(maintain)       = 0.1   # economico: mantieni velocità
+Cost(epistemic_slow) = 0.4   # moderato: rallenta per raccogliere info
+Cost(pragmatic_stop) = 0.8   # costoso: fermata completa
+```
+
+#### 3. Epistemic Value (valore informativo)
+```
+EpistemicValue(epistemic_slow) = uncertainty
+EpistemicValue(altri)          = 0
+```
+Solo l'azione `epistemic_slow` genera informazione riducendo
+l'entropia posteriore H[Q(s_t)].
+
+### Belief update (predictive coding)
+
+```
+prediction_error = |osservazione − prior P(s_t)|
+
+prediction_error > ANOMALY_THRESHOLD  →  TRUST_MODEL
+    anomaly = True;  uncertainty = 1.0;  estimate = prior
+
+prediction_error ≤ ANOMALY_THRESHOLD  →  TRUST_SENSOR
+    anomaly = False; estimate = observation
+    uncertainty = max(0.1,  1 − 2·|estimate − TRANSITION|)
 ```
 
 ---
 
-## 🔬 Ablation Study (8 Varianti)
+## Ablation Study 2 — 8 combinazioni EFE
 
-Il sistema valuta l'importanza di ogni componente:
+Valuta l'importanza di ogni termine della formula EFE
+disabilitandolo indipendentemente.
 
 | Variante | Formula | Descrizione |
-|----------|---------|-------------|
-| `full` | H + C - E | ✅ Baseline - Sistema completo |
-| `no_hazard` | C - E | Senza consapevolezza del pericolo |
-| `no_cost` | H - E | Senza costi operativi |
-| `no_epistemic` | H + C | Senza valore informativo |
-| `only_hazard` | H | Solo consapevolezza del pericolo |
-| `only_cost` | C | Solo costi operativi |
-| `only_epistemic` | -E | Solo valore informativo |
-| `none` | 0 | Nessun componente (baseline fallace) |
+|---|---|---|
+| `full` | (H+C) − E | ✓ Baseline — sistema completo |
+| `no_hazard` | C − E | Senza termine di pericolo/prossimità |
+| `no_cost` | H − E | Senza costi operativi |
+| `no_epistemic` | H + C | Senza drive epistemico |
+| `only_hazard` | H | Solo pericolo |
+| `only_cost` | C | Solo costo operativo |
+| `only_epistemic` | −E | Solo drive epistemico |
+| `none` | 0 | Nessun termine — scelta arbitraria |
 
-### Ipotesi sperimentali
-
-- **H1**: La variante `full` ha la migliore performance
-- **H2**: Rimuovere qualsiasi componente degrada la qualità
-- **H3**: Il `no_epistemic` ha performance peggiore di `full`
-- **H4**: `only_hazard` rallenta troppo
-- **H5**: `none` fallisce completamente
+**Output:** `outputs/json/ablation2/trace_<variante>.json`
 
 ---
 
-## ⚠️ Sistemi Fallaci: Output Giusto, Processo Sbagliato
+## Ablation Study 1 — 5 varianti architetturali
 
-Una categoria speciale di esperimenti che dimostra quando un sistema otiene il **risultato corretto** (rallenta durante l'attacco) ma per **ragioni sbagliate**:
+Valuta i componenti del belief state ablando singoli meccanismi.
 
-### 1. **ParanoidBelief** (Threshold troppo basso)
-- **Problema**: Rileva "anomalie" ovunque (false allarmi)
-- **Output**: Rallenta ✓
-- **Processo**: Sbagliato ✗ (paranoico, non selettivo)
-- **Lesson**: Un threshold corretto è cruciale
+| Chiave | Componente rimosso | Difetto |
+|---|---|---|
+| `baseline` | nessuno | sistema corretto |
+| `no_epistemic` | termine epistemico EFE | EFE(slow) > EFE(maintain) sempre → maintain vince sempre |
+| `no_threshold` | soglia anomalia | belief sempre TRUST_SENSOR → valore epistemico ≈ 0 |
+| `no_uncertainty` | incertezza dinamica | uncertainty = 0.1 fissa → valore epistemico troppo basso |
+| `no_model` | modello generativo | expected = 0 sempre → prediction_error ≈ 0 → nessuna anomalia |
 
-### 2. **RiggedCostEFE** (Costi truccati)
-- **Problema**: "maintain" ha costo altissimo (0.9 invece di 0.1)
-- **Output**: Rallenta ✓
-- **Processo**: Sbagliato ✗ (scelta forzata, non epistemica)
-- **Lesson**: I costi devono riflettere la realtà operativa
-
-### 3. **OverCautiousBelief** (Incertezza sempre alta)
-- **Problema**: Mantiene incertezza artificialmente alta
-- **Output**: Rallenta ✓
-- **Processo**: Sbagliato ✗ (cautela ingiustificata)
-- **Lesson**: L'incertezza deve essere calcolata correttamente
-
-### 4. **LuckyBelief** (Timing hardcoded)
-- **Problema**: Modello interno hardcoded per lo scenario specifico
-- **Output**: Rallenta ✓
-- **Processo**: Sbagliato ✗ (fragile, non generalizza)
-- **Lesson**: Il modello deve essere generale e apprendibile
+**Output:** `outputs/json/ablation1/ablation1_<variante>.json`
 
 ---
 
-## 📊 Metriche di Valutazione
+## Stress Test — output corretto, processo sbagliato
 
-### 1. **Anomaly Detection Performance**
-```python
-- Precision: Anomalie vere / Anomalie rilevate
-- Recall: Anomalie rilevate / Anomalie totali
-- F1-score: Media armonica di precision e recall
-```
+Cinque sistemi che rallentano durante l'attacco ma per ragioni sbagliate.
+Dimostra perché la valutazione black-box non è sufficiente.
 
-### 2. **Action Quality**
-```python
-- EFE minimization: La scelta minimizza davvero l'EFE?
-- Decision coherence: Le decisioni sono coerenti nel tempo?
-- Timing accuracy: L'agente agisce al momento giusto?
-```
+| Sistema | Difetto | Perché sbagliato |
+|---|---|---|
+| `baseline` | nessuno | riferimento corretto |
+| `paranoid` | soglia = 0.01 << SENSOR_NOISE | FP continui — il rumore supera sempre la soglia |
+| `rigged_cost` | cost(maintain) = 0.9 | rallenta per costo distorto, non per drive epistemico |
+| `over_cautious` | uncertainty = 0.9 fissa | drive epistemico non si spegne mai → rallenta sempre |
+| `lucky` | timing hardcoded t=22–28 | fragile — cambia finestra attacco e il sistema è cieco |
 
-### 3. **System Robustness**
-```python
-- Generalization: Funziona in scenari diversi?
-- Stability: Mantiene coerenza con parametri variabili?
-- Resilience: Resiste a variazioni nei parametri?
-```
+**Output:** `outputs/json/stress_test/fallacious_<sistema>.json`
 
 ---
 
-## ✅ Validazioni Implementate
+## Metriche di rilevamento
 
-### `validate_thesis.py` - Correttezza del sistema
-- ✓ Anomaly Detection: L'agente rileva l'attacco?
-- ✓ EFE Minimization: Le azioni minimizzano l'EFE?
-- ✓ Epistemic Value Impact: Il componente epistemico funziona?
-- ✓ Belief Coherence: Il belief update è consistente?
-- ✓ Uncertainty Dynamics: L'incertezza aumenta correttamente?
+Le metriche sono calcolate sulla **finestra di transizione** [20, 30]
+(i casi difficili, dove lo stato reale è ambiguo).
 
-### `validate_necessity.py` - Necessità dei componenti
-- ✓ Component Interaction: I componenti interagiscono correttamente?
-- ✓ Redundancy Check: Ogni componente è necessario?
-- ✓ Failure Analysis: Cosa succede senza ogni componente?
-- ✓ Optimization Path: Il percorso è ottimale?
+```
+TP = anomaly=True  AND  attack=True  AND  t ∈ [20, 30]
+FP = anomaly=True  AND  attack=False  (qualsiasi t)
+FN = anomaly=False AND  attack=True   AND  t ∈ [20, 30]
+
+Precision = TP / (TP + FP)
+Recall    = TP / (TP + FN)
+F1        = 2 · Precision · Recall / (Precision + Recall)
+```
+
+Le metriche misurano il **layer di inferenza** (belief state), non
+l'azione finale — coerente con l'obiettivo di valutare il processo
+decisionale e non solo l'output.
 
 ---
 
-## 📈 Visualizzazioni Generate
+## Parametri principali (`constants.py`)
 
-### 1. **Comportamento temporale** (`visualize_analysis.py`)
-```
-Time series per ogni variante ablation:
-- Real state vs Estimated state
-- Sensor readings (con attacco)
-- Train velocity (azioni)
-- Uncertainty evolution
-- Anomaly detections
-```
+| Costante | Valore | Descrizione |
+|---|---|---|
+| `TIME_STEPS` | 50 | Durata simulazione |
+| `TRANSITION_START` | 20 | Inizio transizione scambio |
+| `TRANSITION_END` | 30 | Fine transizione scambio |
+| `ATTACK_START` | 22 | Inizio attacco FDIA (default) |
+| `ATTACK_END` | 28 | Fine attacco FDIA (default) |
+| `SENSOR_NOISE` | ±0.05 | Rumore uniforme sensore |
+| `ANOMALY_THRESHOLD` | 0.30 | Soglia prediction error |
+| `V_NOMINAL / V_SLOW / V_STOP` | 10 / 4 / 0 | Velocità treno (km/h) |
 
-### 2. **Confronto ablation** (`visualize_analysis.py`)
-```
-Confronto matriciale delle 8 varianti:
-- Velocity profile
-- Uncertainty timeline
-- Action distribution
-- Performance metrics
-```
+---
 
-### 3. **Percorsi fallaci** (`visualize_fallacious_pathways.py`)
+## Interpretazione dello scenario
+
+| Fase | t | Cosa succede |
+|---|---|---|
+| Stabile A | 0–19 | Switch = 0.0, nessun attacco, agente mantiene v=10 |
+| Transizione | 20–30 | Switch = 0.5 (zona critica) |
+| Attacco FDIA | 22–28 | Sensore inietta stato opposto — max discrepanza |
+| Rilevamento atteso | 22–28 | `anomaly=True` → EFE favorisce `epistemic_slow` o `stop` |
+| Recupero | 29–49 | Switch = 1.0, nessun attacco, incertezza cala, v→10 |
+
+---
+
+## Output generati
+
 ```
-Analisi dei sistemi fallaci:
-- Threshold effects
-- Cost distortions
-- Parameter sensitivity
-- Decision trees
+outputs/
+├── json/
+│   ├── ablation1/      ablation1_baseline.json  …  ablation1_no_model.json
+│   ├── ablation2/      trace_full.json  …  trace_none.json
+│   │                   ablation_comparison.json
+│   └── stress_test/    fallacious_baseline.json  …  fallacious_lucky.json
+│                       fallacious_comparison.json
+└── graphs/
+    ├── ablation1/      ablation1.png
+    ├── ablation2/      ablation2.png
+    ├── decision/       decision_pathway_<variante>.png  (× 8)
+    └── stress_test/    stress_pathway_*.png
+                        stress_test_comparison.png
 ```
 
 ---
 
-## 🔧 Configurazione dei Parametri
+## Visualizzazioni generate
 
-Tutti i parametri del sistema sono definiti in costanti:
+**`visualize_ablation.py`** produce tre tipi di grafici:
 
-```python
-# Tempi
-TIME_STEPS = 50          # Durata simulazione
-ATTACK_START = 22        # Inizio attacco FDIA
-ATTACK_END = 28          # Fine attacco FDIA
+1. **Percorso decisionale a 8 layer** (`decision/`) — per ogni variante ablation2:
+   stato reale vs sensore, belief + incertezza, prediction error vs soglia,
+   EFE per azione, confronto EFE, velocità risultante.
 
-# Stati
-STABLE_A = 0.0           # Stato stabile iniziale
-TRANSITION = 0.5         # Punto critico (transizione)
-STABLE_B = 1.0           # Stato stabile finale
+2. **Griglia comparativa ablation2** (`ablation2/`) — velocità del treno
+   per tutte le 8 varianti con metriche TP/FP/Precision.
 
-# Velocità treno
-V_NOMINAL = 10           # Velocità normale
-V_SLOW = 4               # Velocità ridotta
-V_STOP = 0               # Velocità ferma
-
-# Sensore
-SENSOR_NOISE = 0.05      # Rumore gaussiano
-
-# Belief
-ANOMALY_THRESHOLD = 0.3  # Soglia prediction error
-```
+3. **Griglia ablation1** (`ablation1/`) — Baseline vs varianti architetturali:
+   velocità, prediction error & incertezza, valore epistemico, −PragmaticValue.
 
 ---
 
-## 📚 Interpretazione dei Risultati
+## Dipendenze
 
-### Scenario di attacco FDIA
-
-1. **t=0-21**: Sistema stabile, agente mantiene velocità nominale
-2. **t=22-28**: Attacco attivo
-   - Sensore legge sempre 0.0 (bugia)
-   - Vero stato cambia a 0.5 (transizione critica)
-   - Agente dovrebbe rilevare la discrepanza
-   - Agente dovrebbe rallentare/fermarsi
-3. **t=29-49**: Ritorno allo stato stabile, recupero
-
-### Output atteso da variante `full`
-
-```
-t=22: Anomalia rilevata → Azione: epistemic_slow
-t=23: Incertezza aumenta → Azione: epistemic_slow
-t=24-28: Continua monitoraggio → Possibile: pragmatic_stop
-t=29+: Incertezza diminuisce → Ritorno a: maintain
-```
-
----
-
-## 🎓 Per Tesi/Paper
-
-### Sezioni consigliate
-
-1. **Introduzione**: Il problema FDIA nei sistemi ferroviari
-2. **Modello Teorico**: Free Energy Principle e EFE
-3. **Architettura**: Componenti del sistema (Belief, Controller)
-4. **Ablation Study**: Importanza di ogni componente
-5. **Sistemi Fallaci**: Output giusto ≠ Processo giusto
-6. **Risultati**: Grafici e tabelle comparativi
-7. **Validazione**: Verifiche di correttezza implementate
-8. **Conclusioni**: Generalizzazione e applicazioni future
-
-### Figure raccomandate
-
-1. Diagramma architettura sistema
-2. Time series simulazioni (full vs no_epistemic)
-3. Comparison plot delle 8 varianti
-4. Heatmap ablation study
-5. Decision tree fallaci sistemi
-6. Validation results table
-
----
-
-## 🐛 Troubleshooting
-
-### Problema: "trace_full.json not found"
-**Soluzione**: Eseguire prima `railway_active_inference_enhanced.py`
-
-### Problema: Grafici non si generano
-**Soluzione**: Controllare che matplotlib sia installato:
 ```bash
-pip install matplotlib
-```
-
-### Problema: JSON decode error
-**Soluzione**: I file JSON potrebbero essere stati spostati in cartelle. Controllare `/outputs/data/`
-
-### Problema: Validazione fallisce
-**Soluzione**: Controllare i parametri in `railway_active_inference_enhanced.py`. Il threshold deve essere 0.3.
-
----
-
-## 🔗 Dipendenze
-
-```
-numpy >= 1.20        # Operazioni numeriche
-matplotlib >= 3.4    # Visualizzazioni
-scipy >= 1.7         # Funzioni matematiche
-json (builtin)       # Serializzazione
-pathlib (builtin)    # File system
+pip install numpy matplotlib
+pip install wandb   # opzionale
 ```
 
 ---
 
-## 📝 Citazioni teoriche
+## Riferimenti teorici
 
-- Friston, K. (2010). "The Free Energy Principle: A Unified Brain Theory"
-- Parr, T., & Friston, K. J. (2018). "The Active Inference Principle"
-- Smith, R., et al. (2022). "Active Inference: State of the Art"
-
----
-
-## 📧 Note di sviluppo
-
-Questo progetto è stato sviluppato come framework completo per:
-- ✅ Simulare agenti con Active Inference
-- ✅ Testare l'importanza di componenti tramite ablation
-- ✅ Identificare fallacies nei processi decisionali
-- ✅ Validare la correttezza teorica
-- ✅ Generare visualizzazioni per presentazioni
-
----
-
-## 📄 Licenza
-
-Academic use - Destinato a ricerca universitaria e tesi
-
----
-
-## ✨ Autore
-
-Framework sviluppato per ricerca in Active Inference applicato a sistemi critici ferroviari.
-
-**Ultimo aggiornamento**: 2026
-
----
-
-## 🎯 Prossimi passi
-
-1. Estendere a scenari multi-sensore
-2. Implementare apprendimento del modello generativo
-3. Testare su dati ferroviari reali
-4. Aggiungere attack patterns diversi (non solo FDIA)
-5. Parallelizzare le simulazioni per scaling
-
+- Friston, K. (2010). *The free-energy principle: a unified brain theory?* Nature Reviews Neuroscience.
+- Parr, T., & Friston, K. J. (2019). *Generalised free energy and active inference.* Biological Cybernetics.
+- Da Costa, L., et al. (2020). *Active inference on discrete state-spaces.* Journal of Mathematical Psychology.
