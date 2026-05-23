@@ -3,33 +3,23 @@ run_thesis.py — Master Workflow
 Esegue l'intero sistema e organizza i file generati in outputs/.
 """
 
+import os
 import subprocess
 import sys
 from pathlib import Path
 
 
-def setup_wandb() -> bool:
-    """Chiede se collegare wandb. Restituisce True se wandb attivo."""
-    try:
-        import wandb
-    except ImportError:
-        print("[wandb] non installato — esegui: pip install wandb")
-        return False
-
+def setup_wandb() -> None:
+    """Chiede se usare wandb. Se no, imposta WANDB_MODE=disabled (ereditato dai sottoprocessi)."""
     print("\n" + "-" * 80)
     print("  WEIGHTS & BIASES")
     answer = input("  Collegare wandb per il logging degli esperimenti? (y/n): ").strip().lower()
     if answer != "y":
+        os.environ["WANDB_MODE"] = "disabled"
         print("  [wandb] skipped")
-        return False
-
-    try:
-        wandb.login()
-        print("  [wandb] login OK")
-        return True
-    except Exception as e:
-        print(f"  [wandb] login fallito: {e}")
-        return False
+    else:
+        os.environ["WANDB_MODE"] = "online"
+        print("  [wandb] attivo — usa credenziali salvate (wandb login)")
 
 
 def create_output_dirs():
@@ -71,7 +61,10 @@ def run_step(i, total, script):
     print(f"  STEP {i}/{total}: {script}")
     print(f"{'='*80}")
 
-    result = subprocess.run([sys.executable, script])
+    result = subprocess.run(
+        [sys.executable, script],
+        cwd=Path(__file__).parent,
+    )
 
     if result.returncode != 0:
         answer = input("\nErrore. Continua comunque? (y/n): ")

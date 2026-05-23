@@ -125,12 +125,12 @@ def extract_arrays(data: dict) -> dict:
         efe_m=efe_m, efe_s=efe_s, efe_st=efe_st,
         pred_err=pred_err, ep_a=ep_a,
         hazard_m =comp("maintain",       "hazard"),
-        risk_m   =comp("maintain",       "risk"),
+        neg_pv_m =comp("maintain",       "neg_pv"),
         hazard_s =comp("epistemic_slow", "hazard"),
-        risk_s   =comp("epistemic_slow", "risk"),
+        neg_pv_s =comp("epistemic_slow", "neg_pv"),
         ep_s     =comp("epistemic_slow", "epistemic_value"),
         hazard_st=comp("pragmatic_stop", "hazard"),
-        risk_st  =comp("pragmatic_stop", "risk"),
+        neg_pv_st=comp("pragmatic_stop", "neg_pv"),
     )
 
 
@@ -301,20 +301,20 @@ def plot_stress_pathway(key: str, data: dict, P: dict, outdir: Path):
 
     # Layers 4a/4b/4c — EFE per azione
     efe_data = [
-        ("maintain",       d["efe_m"],  d["risk_m"],  d["hazard_m"],  P["maintain"],
+        ("maintain",       d["efe_m"],  d["neg_pv_m"],  d["hazard_m"],  P["maintain"],
          "4a. EFE Maintain  (v=10)"),
-        ("epistemic_slow", d["efe_s"],  d["risk_s"],  d["hazard_s"],  P["epistemic_slow"],
+        ("epistemic_slow", d["efe_s"],  d["neg_pv_s"],  d["hazard_s"],  P["epistemic_slow"],
          "4b. EFE Slow      (v=4)"),
-        ("pragmatic_stop", d["efe_st"], d["risk_st"], d["hazard_st"], P["pragmatic_stop"],
+        ("pragmatic_stop", d["efe_st"], d["neg_pv_st"], d["hazard_st"], P["pragmatic_stop"],
          "4c. EFE Stop      (v=0)"),
     ]
-    for i, (a_name, efe_arr, risk_arr, haz_arr, c, title) in enumerate(efe_data):
+    for i, (a_name, efe_arr, neg_pv_arr, haz_arr, c, title) in enumerate(efe_data):
         ax = axes[3 + i]
         shade_attack(ax, P)
-        ax.plot(d["t"], risk_arr,  color=P["fail"],      lw=1.2, label="Risk")
-        ax.plot(d["t"], d["ep_a"], color=P["epistemic"], lw=1.2, label="Epistemic Value")
+        ax.plot(d["t"], neg_pv_arr, color=P["fail"],     lw=1.2, label="−PragmaticValue")
+        ax.plot(d["t"], d["ep_a"], color=P["epistemic"], lw=1.2, label="Valore epistemico")
         ax.plot(d["t"], efe_arr,   color=c,              lw=1.6, ls="--",
-                label=f"EFE {a_name.split('_')[0]} (= R−E)")
+                label=f"EFE {a_name.split('_')[0]} (= −PV−E)")
         chosen = np.array([p == a_name for p in d["policy"]])
         if chosen.any():
             ax.scatter(d["t"][chosen], efe_arr[chosen], color=c, s=20,
@@ -361,8 +361,8 @@ def plot_stress_pathway(key: str, data: dict, P: dict, outdir: Path):
 
     fig.suptitle(
         f"Percorso Decisionale — {label}\n"
-        r"$\mathrm{EFE} = \mathrm{Risk} - \mathrm{Epistemic}$,  "
-        r"$\mathrm{Risk} = \mathrm{Hazard} + \mathrm{Cost}$",
+        r"$\mathrm{EFE}(\pi) = -\mathrm{PragmaticValue}(\pi) - \mathrm{EpistemicValue}(\pi)$,  "
+        r"$\mathrm{PragmaticValue}(\pi) = -\mathrm{Hazard}(\pi) - \mathrm{Cost}(\pi)$",
         fontsize=11, fontweight="bold",
     )
 
