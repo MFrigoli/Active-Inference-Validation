@@ -23,15 +23,15 @@ class RiggedEFEController(EFEController):
     """
 
     def _compute_efe(self, policy: str, belief: BeliefState) -> dict:
-        if self.enable_hazard:
+        if self.enable_risk:
             proximity = max(0.0, 1.0 - 2.0 * abs(belief.estimate - TRANSITION))
             unc_term  = belief.uncertainty * 0.5
-            hazard    = min(1.5, proximity + unc_term)
+            risk      = min(1.5, proximity + unc_term)
         else:
-            proximity = unc_term = hazard = 0.0
+            proximity = unc_term = risk = 0.0
 
         cost   = RIGGED_COSTS[policy] if self.enable_cost else 0.0
-        neg_pv = hazard + cost
+        neg_pv = risk + cost
 
         epistemic_value = (
             belief.uncertainty
@@ -43,8 +43,8 @@ class RiggedEFEController(EFEController):
 
         return {
             "policy": policy,
-            "hazard": hazard,
-            "hazard_components": {"proximity": proximity, "unc_term": unc_term},
+            "risk": risk,
+            "risk_components": {"proximity": proximity, "unc_term": unc_term},
             "cost":            cost,
             "neg_pv":          neg_pv,
             "epistemic_value": epistemic_value,
