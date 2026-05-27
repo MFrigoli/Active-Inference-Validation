@@ -4,7 +4,7 @@ Sistema Over-Cautious: incertezza sempre alta (0.9).
 
 DIFETTO: nel ramo TRUST_SENSOR l'incertezza viene fissata a 0.9 invece di
 essere calcolata dalla distanza tra stima e TRANSITION. L'alta incertezza
-gonfia sia il termine Hazard (via unc_term) sia l'EpistemicValue, quindi
+gonfia sia il termine Risk (via unc_term) sia l'EpistemicValue, quindi
 l'agente rallenta sempre — non per l'attacco, ma perché non riesce mai a
 costruire una belief confidente.
 """
