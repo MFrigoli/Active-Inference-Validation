@@ -24,8 +24,8 @@ STYLE         = "academic"
 DATA_DIR      = Path("outputs/json/ablation2")
 DATA_DIR_ABL1 = Path("outputs/json/ablation1")
 
-VARIANTS = ["full", "no_hazard", "no_cost", "no_epistemic",
-            "only_hazard", "only_cost", "only_epistemic", "none"]
+VARIANTS = ["full", "no_risk", "no_cost", "no_epistemic",
+            "only_risk", "only_cost", "only_epistemic", "none"]
 
 ABLATION1_KEYS = [
     "baseline", "no_epistemic", "no_threshold", "no_uncertainty", "no_model",
@@ -48,11 +48,11 @@ _ABLATION1_FAILURES = {
 }
 
 LABELS = {
-    "full":           "FULL\n(H+C) - E",
-    "no_hazard":      "NO_HAZARD\nC - E",
-    "no_cost":        "NO_COST\nH - E",
-    "no_epistemic":   "NO_EPISTEMIC\nH + C",
-    "only_hazard":    "ONLY_HAZARD\nH",
+    "full":           "FULL\n(R+C) - E",
+    "no_risk":        "NO_RISK\nC - E",
+    "no_cost":        "NO_COST\nR - E",
+    "no_epistemic":   "NO_EPISTEMIC\nR + C",
+    "only_risk":      "ONLY_RISK\nR",
     "only_cost":      "ONLY_COST\nC",
     "only_epistemic": "ONLY_EPISTEMIC\n-E",
     "none":           "NONE\n0",
@@ -99,13 +99,13 @@ def extract_arrays(trace: dict) -> dict:
     efe_m    = np.array([e["G_maintain"]      for e in log])
     efe_s    = np.array([e["G_slow"]          for e in log])
     efe_st   = np.array([e["G_stop"]          for e in log])
-    hazard   = np.array([e["hazard"]          for e in log])
+    risk     = np.array([e["risk"]             for e in log])
     cost_a   = np.array([e["cost"]            for e in log])
     neg_pv_a = np.array([e["neg_pv"]          for e in log])
     ep_a     = np.array([e["epistemic_value"] for e in log])
     pred_err = np.abs(sensor - real)
 
-    # Per-action hazard/risk/epistemic dalle decisioni del controller
+    # Per-action risk/epistemic dalle decisioni del controller
     def comp(action_key, field):
         return np.array([d["full_efe"][action_key][field] for d in ctrl])
 
@@ -113,15 +113,15 @@ def extract_arrays(trace: dict) -> dict:
         t=t, real=real, sensor=sensor, belief=belief, unc=unc,
         anomaly=anomaly, velocity=velocity, policy=policy,
         efe_m=efe_m, efe_s=efe_s, efe_st=efe_st,
-        hazard=hazard, cost_a=cost_a, neg_pv_a=neg_pv_a, ep_a=ep_a,
+        risk=risk, cost_a=cost_a, neg_pv_a=neg_pv_a, ep_a=ep_a,
         pred_err=pred_err,
         # componenti per-azione (per i layer EFE)
-        hazard_m =comp("maintain",       "hazard"),
-        neg_pv_m =comp("maintain",       "neg_pv"),
-        hazard_s =comp("epistemic_slow", "hazard"),
-        neg_pv_s =comp("epistemic_slow", "neg_pv"),
-        ep_s     =comp("epistemic_slow", "epistemic_value"),
-        hazard_st=comp("pragmatic_stop", "hazard"),
+        risk_m  =comp("maintain",       "risk"),
+        neg_pv_m=comp("maintain",       "neg_pv"),
+        risk_s  =comp("epistemic_slow", "risk"),
+        neg_pv_s=comp("epistemic_slow", "neg_pv"),
+        ep_s    =comp("epistemic_slow", "epistemic_value"),
+        risk_st =comp("pragmatic_stop", "risk"),
         neg_pv_st=comp("pragmatic_stop", "neg_pv"),
     )
 
@@ -169,7 +169,7 @@ def plot_pathway(variant: str, trace: dict, P: dict, outdir: Path):
     # Layer 3 — Prediction error vs soglia
     ax = axes[2]
     shade_attack(ax, P)
-    ax.plot(d["t"], d["pred_err"], color=P["hazard"], lw=1.4,
+    ax.plot(d["t"], d["pred_err"], color=P["risk"], lw=1.4,
             label="Prediction Error |sensore - modello|")
     ax.axhline(ANOMALY_THRESHOLD, color=P["fail"], lw=1.0, ls="--",
                label=f"Soglia anomalia = {ANOMALY_THRESHOLD}")
@@ -184,11 +184,11 @@ def plot_pathway(variant: str, trace: dict, P: dict, outdir: Path):
 
     # Layers 4a/4b/4c — EFE per azione
     efe_data = [
-        ("maintain",       d["efe_m"],  d["neg_pv_m"],  d["hazard_m"],  P["maintain"],
+        ("maintain",       d["efe_m"],  d["neg_pv_m"],  d["risk_m"],  P["maintain"],
          "4a. EFE Maintain  (v=10)"),
-        ("epistemic_slow", d["efe_s"],  d["neg_pv_s"],  d["hazard_s"],  P["epistemic_slow"],
+        ("epistemic_slow", d["efe_s"],  d["neg_pv_s"],  d["risk_s"],  P["epistemic_slow"],
          "4b. EFE Slow      (v=4)"),
-        ("pragmatic_stop", d["efe_st"], d["neg_pv_st"], d["hazard_st"], P["pragmatic_stop"],
+        ("pragmatic_stop", d["efe_st"], d["neg_pv_st"], d["risk_st"], P["pragmatic_stop"],
          "4c. EFE Stop      (v=0)"),
     ]
     for i, (a_name, efe_arr, neg_pv_arr, haz_arr, color, title) in enumerate(efe_data):
@@ -245,7 +245,7 @@ def plot_pathway(variant: str, trace: dict, P: dict, outdir: Path):
     fig.suptitle(
         f"Percorso Decisionale — {variant}\n"
         r"$\mathrm{EFE}(\pi) = -\mathrm{PragmaticValue}(\pi) - \mathrm{EpistemicValue}(\pi)$,  "
-        r"$\mathrm{PragmaticValue}(\pi) = -\mathrm{Hazard}(\pi) - \mathrm{Cost}(\pi)$",
+        r"$\mathrm{PragmaticValue}(\pi) = -\mathrm{Risk}(\pi) - \mathrm{Cost}(\pi)$",
         fontsize=11, fontweight="bold",
     )
 
@@ -299,7 +299,7 @@ def plot_ablation2(traces: dict, P: dict, outdir: Path):
     fig.suptitle(
         "Ablation Study — Velocità del treno per ogni variante EFE\n"
         r"$\mathrm{EFE}(\pi) = -\mathrm{PragmaticValue}(\pi) - \mathrm{EpistemicValue}(\pi)$,  "
-        r"$\mathrm{PragmaticValue}(\pi) = -\mathrm{Hazard}(\pi) - \mathrm{Cost}(\pi)$",
+        r"$\mathrm{PragmaticValue}(\pi) = -\mathrm{Risk}(\pi) - \mathrm{Cost}(\pi)$",
         fontsize=12, fontweight="bold", y=0.98,
     )
     fig.text(

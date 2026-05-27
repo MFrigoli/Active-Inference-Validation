@@ -77,7 +77,7 @@ def run_ablation1(attack_start: int = ATTACK_START, attack_end: int = ATTACK_END
 
         belief     = cfg["belief_cls"]()
         controller = EFEController(
-            enable_hazard    = True,
+            enable_risk      = True,
             enable_cost      = True,
             enable_epistemic = cfg["epistemic"],
         )

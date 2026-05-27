@@ -9,13 +9,13 @@ Decomposizione canonica:
     EFE(π) = −PragmaticValue(π) − EpistemicValue(π)
 
 dove:
-    PragmaticValue(π) = −Hazard(π) − Cost(π)
-    Hazard            = min(1.5, proximity + 0.5·uncertainty)
+    PragmaticValue(π) = −Risk(π) − Cost(π)
+    Risk              = min(1.5, proximity + 0.5·uncertainty)
     proximity         = max(0,   1 − 2·|E_Q[s_t] − TRANSITION|)
     EpistemicValue    = uncertainty  se π=epistemic_slow, altrimenti 0
 
 Nota: nel codice −PragmaticValue è calcolato direttamente come
-    neg_pv = Hazard + Cost
+    neg_pv = Risk + Cost
 in modo che EFE = neg_pv − EpistemicValue.
 
 Policy π ∈ {maintain, epistemic_slow, pragmatic_stop}.
@@ -32,11 +32,11 @@ class EFEController:
 
     def __init__(
         self,
-        enable_hazard:    bool = True,
+        enable_risk:      bool = True,
         enable_cost:      bool = True,
         enable_epistemic: bool = True,
     ):
-        self.enable_hazard    = enable_hazard
+        self.enable_risk      = enable_risk
         self.enable_cost      = enable_cost
         self.enable_epistemic = enable_epistemic
         self.trace: list = []
@@ -44,19 +44,19 @@ class EFEController:
     def _compute_efe(self, policy: str, belief: BeliefState) -> dict:
         """Calcola il breakdown completo della EFE per una singola policy."""
 
-        # ── Hazard (prossimità alla zona di pericolo) ─────────────────────────
-        if self.enable_hazard:
+        # ── Risk (prossimità alla zona di pericolo) ──────────────────────────
+        if self.enable_risk:
             proximity = max(0.0, 1.0 - 2.0 * abs(belief.estimate - TRANSITION))
             unc_term  = belief.uncertainty * 0.5
-            hazard    = min(1.5, proximity + unc_term)
+            risk      = min(1.5, proximity + unc_term)
         else:
-            proximity = unc_term = hazard = 0.0
+            proximity = unc_term = risk = 0.0
 
         # ── Cost (costo operativo) ────────────────────────────────────────────
         cost = BASE_COSTS[policy] if self.enable_cost else 0.0
 
-        # ── −PragmaticValue = Hazard + Cost  (termine pragmatico totale) ─────
-        neg_pv = hazard + cost
+        # ── −PragmaticValue = Risk + Cost  (termine pragmatico totale) ───────
+        neg_pv = risk + cost
 
         # ── EpistemicValue  (guadagno informativo) ────────────────────────────
         # Rallentare permette di osservare lo scambio più attentamente,
@@ -73,8 +73,8 @@ class EFEController:
 
         return {
             "policy": policy,
-            "hazard": hazard,
-            "hazard_components": {
+            "risk": risk,
+            "risk_components": {
                 "proximity": proximity,
                 "unc_term":  unc_term,
             },

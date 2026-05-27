@@ -23,7 +23,7 @@ PROJECT = "railway-active-inference"
 _SIM_COLUMNS = [
     "t", "switch_real", "switch_observed", "belief_estimate",
     "uncertainty", "anomaly", "velocity", "policy", "attack",
-    "G_maintain", "G_slow", "G_stop", "hazard", "cost", "neg_pv",
+    "G_maintain", "G_slow", "G_stop", "risk", "cost", "neg_pv",
     "epistemic_value",
 ]
 

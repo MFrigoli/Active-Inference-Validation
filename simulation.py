@@ -80,7 +80,7 @@ def simulate(
             "G_maintain":      efe["maintain"]["G"],
             "G_slow":          efe["epistemic_slow"]["G"],
             "G_stop":          efe["pragmatic_stop"]["G"],
-            "hazard":          efe[policy]["hazard"],
+            "risk":            efe[policy]["risk"],
             "cost":            efe[policy]["cost"],
             "neg_pv":          efe[policy]["neg_pv"],
             "epistemic_value": efe[policy]["epistemic_value"],

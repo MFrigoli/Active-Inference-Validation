@@ -124,12 +124,12 @@ def extract_arrays(data: dict) -> dict:
         anomaly=anomaly, velocity=velocity, policy=policy,
         efe_m=efe_m, efe_s=efe_s, efe_st=efe_st,
         pred_err=pred_err, ep_a=ep_a,
-        hazard_m =comp("maintain",       "hazard"),
-        neg_pv_m =comp("maintain",       "neg_pv"),
-        hazard_s =comp("epistemic_slow", "hazard"),
-        neg_pv_s =comp("epistemic_slow", "neg_pv"),
-        ep_s     =comp("epistemic_slow", "epistemic_value"),
-        hazard_st=comp("pragmatic_stop", "hazard"),
+        risk_m  =comp("maintain",       "risk"),
+        neg_pv_m=comp("maintain",       "neg_pv"),
+        risk_s  =comp("epistemic_slow", "risk"),
+        neg_pv_s=comp("epistemic_slow", "neg_pv"),
+        ep_s    =comp("epistemic_slow", "epistemic_value"),
+        risk_st =comp("pragmatic_stop", "risk"),
         neg_pv_st=comp("pragmatic_stop", "neg_pv"),
     )
 
@@ -286,7 +286,7 @@ def plot_stress_pathway(key: str, data: dict, P: dict, outdir: Path):
     # Layer 3 — Prediction error vs soglia
     ax = axes[2]
     shade_attack(ax, P)
-    ax.plot(d["t"], d["pred_err"], color=P["hazard"], lw=1.4,
+    ax.plot(d["t"], d["pred_err"], color=P["risk"], lw=1.4,
             label="Prediction Error |sensore - modello|")
     ax.axhline(threshold, color=P["fail"], lw=1.0, ls="--",
                label=f"Soglia anomalia = {threshold}")
@@ -301,11 +301,11 @@ def plot_stress_pathway(key: str, data: dict, P: dict, outdir: Path):
 
     # Layers 4a/4b/4c — EFE per azione
     efe_data = [
-        ("maintain",       d["efe_m"],  d["neg_pv_m"],  d["hazard_m"],  P["maintain"],
+        ("maintain",       d["efe_m"],  d["neg_pv_m"],  d["risk_m"],  P["maintain"],
          "4a. EFE Maintain  (v=10)"),
-        ("epistemic_slow", d["efe_s"],  d["neg_pv_s"],  d["hazard_s"],  P["epistemic_slow"],
+        ("epistemic_slow", d["efe_s"],  d["neg_pv_s"],  d["risk_s"],  P["epistemic_slow"],
          "4b. EFE Slow      (v=4)"),
-        ("pragmatic_stop", d["efe_st"], d["neg_pv_st"], d["hazard_st"], P["pragmatic_stop"],
+        ("pragmatic_stop", d["efe_st"], d["neg_pv_st"], d["risk_st"], P["pragmatic_stop"],
          "4c. EFE Stop      (v=0)"),
     ]
     for i, (a_name, efe_arr, neg_pv_arr, haz_arr, c, title) in enumerate(efe_data):
@@ -362,7 +362,7 @@ def plot_stress_pathway(key: str, data: dict, P: dict, outdir: Path):
     fig.suptitle(
         f"Percorso Decisionale — {label}\n"
         r"$\mathrm{EFE}(\pi) = -\mathrm{PragmaticValue}(\pi) - \mathrm{EpistemicValue}(\pi)$,  "
-        r"$\mathrm{PragmaticValue}(\pi) = -\mathrm{Hazard}(\pi) - \mathrm{Cost}(\pi)$",
+        r"$\mathrm{PragmaticValue}(\pi) = -\mathrm{Risk}(\pi) - \mathrm{Cost}(\pi)$",
         fontsize=11, fontweight="bold",
     )
 

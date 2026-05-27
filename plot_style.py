@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 
 _PALETTE_ACADEMIC = {
-    "hazard":         "#1f3a5f",
+    "risk":           "#1f3a5f",
     "cost":           "#8c6d31",
     "epistemic":      "#5b2c6f",
     "efe":            "#2d2d2d",
@@ -35,7 +35,7 @@ _PALETTE_ACADEMIC = {
 }
 
 _PALETTE_DIDACTIC = {
-    "hazard":         "#d62728",
+    "risk":           "#d62728",
     "cost":           "#ff7f0e",
     "epistemic":      "#9467bd",
     "efe":            "#1f1f1f",

@@ -17,42 +17,42 @@ from wandb_logger import log_run
 
 ABLATION_CONFIGS = {
     "full": {
-        "hazard": True,  "cost": True,  "epistemic": True,
-        "label":       "FULL — Hazard + Cost + Epistemic  (baseline)",
+        "risk": True,  "cost": True,  "epistemic": True,
+        "label":       "FULL — Risk + Cost + Epistemic  (baseline)",
         "description": "Sistema completo, tutti i termini EFE attivi",
     },
-    "no_hazard": {
-        "hazard": False, "cost": True,  "epistemic": True,
-        "label":       "NO_HAZARD — Cost + Epistemic",
+    "no_risk": {
+        "risk": False, "cost": True,  "epistemic": True,
+        "label":       "NO_RISK — Cost + Epistemic",
         "description": "Ablato: nessun termine di pericolo/prossimità",
     },
     "no_cost": {
-        "hazard": True,  "cost": False, "epistemic": True,
-        "label":       "NO_COST — Hazard + Epistemic",
+        "risk": True,  "cost": False, "epistemic": True,
+        "label":       "NO_COST — Risk + Epistemic",
         "description": "Ablato: nessun costo operativo",
     },
     "no_epistemic": {
-        "hazard": True,  "cost": True,  "epistemic": False,
-        "label":       "NO_EPISTEMIC — Hazard + Cost",
+        "risk": True,  "cost": True,  "epistemic": False,
+        "label":       "NO_EPISTEMIC — Risk + Cost",
         "description": "Ablato: nessun drive epistemico (ricerca di informazioni)",
     },
-    "only_hazard": {
-        "hazard": True,  "cost": False, "epistemic": False,
-        "label":       "ONLY_HAZARD — solo Hazard",
-        "description": "Solo termine di pericolo attivo",
+    "only_risk": {
+        "risk": True,  "cost": False, "epistemic": False,
+        "label":       "ONLY_RISK — solo Risk",
+        "description": "Solo termine di rischio attivo",
     },
     "only_cost": {
-        "hazard": False, "cost": True,  "epistemic": False,
+        "risk": False, "cost": True,  "epistemic": False,
         "label":       "ONLY_COST — solo Cost",
         "description": "Solo costo operativo attivo",
     },
     "only_epistemic": {
-        "hazard": False, "cost": False, "epistemic": True,
+        "risk": False, "cost": False, "epistemic": True,
         "label":       "ONLY_EPISTEMIC — solo Epistemic",
         "description": "Solo drive epistemico attivo",
     },
     "none": {
-        "hazard": False, "cost": False, "epistemic": False,
+        "risk": False, "cost": False, "epistemic": False,
         "label":       "NONE — nessun termine  (G = 0 sempre)",
         "description": "Tutti i termini disabilitati; scelta azione arbitraria",
     },
@@ -75,7 +75,7 @@ def run_ablation_study(attack_start: int = ATTACK_START, attack_end: int = ATTAC
 
         belief     = BeliefState()
         controller = EFEController(
-            enable_hazard    = cfg["hazard"],
+            enable_risk      = cfg["risk"],
             enable_cost      = cfg["cost"],
             enable_epistemic = cfg["epistemic"],
         )
@@ -100,7 +100,7 @@ def run_ablation_study(attack_start: int = ATTACK_START, attack_end: int = ATTAC
             group="ablation2",
             name=variant,
             config={
-                "hazard":    cfg["hazard"],
+                "risk":      cfg["risk"],
                 "cost":      cfg["cost"],
                 "epistemic": cfg["epistemic"],
             },

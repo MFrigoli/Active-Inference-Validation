@@ -84,8 +84,8 @@ def main():
     setup_wandb()
 
     steps = [
-        "ablation2.py",
         "ablation1.py",
+        "ablation2.py",
         "stress_test.py",
         "visualize_ablation.py",
         "visualize_stress_test.py",
