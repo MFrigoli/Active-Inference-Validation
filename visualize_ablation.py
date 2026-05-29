@@ -150,24 +150,8 @@ def plot_pathway(variant: str, trace: dict, P: dict, outdir: Path):
     ax.legend(loc="upper left", ncol=1, fontsize=7)
     clean_axis(ax)
 
-    # Layer 2 — Belief + incertezza + anomalie
+    # Layer 2 — Prediction error vs soglia
     ax = axes[1]
-    shade_attack(ax, P)
-    ax.fill_between(d["t"], 0, d["unc"], color=P["uncertainty"], alpha=0.3, label="Incertezza")
-    ax.plot(d["t"], d["belief"], color=P["belief"], lw=1.6, label="Belief (stima interna)")
-    ax.plot(d["t"], d["unc"],    color=P["uncertainty"], lw=1.0, ls="--")
-    anom_mask = d["anomaly"] > 0
-    if anom_mask.any():
-        ax.scatter(d["t"][anom_mask], d["belief"][anom_mask],
-                   color=P["attack"], s=25, zorder=5, marker="x", label="Anomalia rilevata")
-    ax.set_ylabel("Belief State")
-    ax.set_ylim(-0.1, 1.15)
-    ax.set_title("2. Inference Layer: come interpreta i dati?", loc="left")
-    ax.legend(loc="upper left", ncol=1, fontsize=7)
-    clean_axis(ax)
-
-    # Layer 3 — Prediction error vs soglia
-    ax = axes[2]
     shade_attack(ax, P)
     ax.plot(d["t"], d["pred_err"], color=P["risk"], lw=1.4,
             label="Prediction Error |sensore - modello|")
@@ -178,7 +162,23 @@ def plot_pathway(variant: str, trace: dict, P: dict, outdir: Path):
                     color=P["attack"], alpha=0.25, label="Anomalia (error > soglia)")
     ax.set_ylabel("Prediction Error")
     ax.set_ylim(-0.05, max(0.75, d["pred_err"].max() * 1.15))
-    ax.set_title("3. Prediction Error vs Soglia di Anomalia", loc="left")
+    ax.set_title("2. Detection Layer: prediction error vs soglia", loc="left")
+    ax.legend(loc="upper left", ncol=1, fontsize=7)
+    clean_axis(ax)
+
+    # Layer 2b — Belief + incertezza + anomalie
+    ax = axes[2]
+    shade_attack(ax, P)
+    ax.fill_between(d["t"], 0, d["unc"], color=P["uncertainty"], alpha=0.3, label="Incertezza")
+    ax.plot(d["t"], d["belief"], color=P["belief"], lw=1.6, label="Belief (stima interna)")
+    ax.plot(d["t"], d["unc"],    color=P["uncertainty"], lw=1.0, ls="--")
+    anom_mask = d["anomaly"] > 0
+    if anom_mask.any():
+        ax.scatter(d["t"][anom_mask], d["belief"][anom_mask],
+                   color=P["attack"], s=25, zorder=5, marker="x", label="Anomalia rilevata")
+    ax.set_ylabel("Belief State")
+    ax.set_ylim(-0.1, 1.15)
+    ax.set_title("3. Inference Layer: come interpreta i dati?", loc="left")
     ax.legend(loc="upper left", ncol=1, fontsize=7)
     clean_axis(ax)
 
@@ -243,9 +243,7 @@ def plot_pathway(variant: str, trace: dict, P: dict, outdir: Path):
     clean_axis(ax)
 
     fig.suptitle(
-        f"Percorso Decisionale — {variant}\n"
-        r"$\mathrm{EFE}(\pi) = -\mathrm{PragmaticValue}(\pi) - \mathrm{EpistemicValue}(\pi)$,  "
-        r"$\mathrm{PragmaticValue}(\pi) = -\mathrm{Risk}(\pi) - \mathrm{Cost}(\pi)$",
+        f"Percorso Decisionale — {variant}",
         fontsize=11, fontweight="bold",
     )
 
@@ -297,9 +295,7 @@ def plot_ablation2(traces: dict, P: dict, outdir: Path):
         ax.set_ylabel("Velocità (km/h)")
 
     fig.suptitle(
-        "Ablation Study — Velocità del treno per ogni variante EFE\n"
-        r"$\mathrm{EFE}(\pi) = -\mathrm{PragmaticValue}(\pi) - \mathrm{EpistemicValue}(\pi)$,  "
-        r"$\mathrm{PragmaticValue}(\pi) = -\mathrm{Risk}(\pi) - \mathrm{Cost}(\pi)$",
+        "Ablation Study — Velocità del treno per ogni variante EFE",
         fontsize=12, fontweight="bold", y=0.98,
     )
     fig.text(
